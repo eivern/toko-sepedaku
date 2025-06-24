@@ -28,30 +28,22 @@ class RegisteredUserController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'status' => 'suspended',
-        ]);
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
 
-        $adminPhoneNumber = env('ADMIN_WHATSAPP_NUMBER', '6281234567890');
-        $message = "Halo Admin SewaSepedaku,\n\n" .
-                   "Saya *{$user->name}* ({$user->email}) baru saja mendaftar.\n\n" .
-                   "Saya ingin melakukan pembayaran langganan sebesar *Rp 99.000 / bulan* untuk mengaktifkan akun saya.\n\n" .
-                   "Mohon kirimkan detail pembayaran. Terima kasih.";
+        event(new Registered($user));
 
-        $waLink = 'https://api.whatsapp.com/send?phone=' . $adminPhoneNumber . '&text=' . urlencode($message);
-
-        session()->flash('status', 'Pendaftaran berhasil! Silakan selesaikan pembayaran melalui WhatsApp untuk mengaktifkan akun Anda.');
-
-        return redirect()->away($waLink);
-    }
+        Auth::login($user);
+        return redirect(route('dashboard', absolute: false));
+    }
 }
